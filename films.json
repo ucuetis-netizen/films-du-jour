@@ -10846,13 +10846,12 @@
    "stop": "2026-10-25T09:25:00+01:00",
    "year": "",
    "genres": [
-    "Comédie",
-    "Romance"
+    "Comédie"
    ],
-   "rating": 6.9,
-   "poster": "https://image.tmdb.org/t/p/w185/jznhPpMuYvWxVrHMv9Zr0Bm2OY5.jpg",
+   "rating": null,
+   "poster": null,
    "country": "France",
-   "summary": "Italie, XVIe siècle. Petruchio, un pauvre propriétaire terrien de Vérone, colérique et menteur, arrive à Padoue en quête de fortune et d'une épouse, tandis que Baptista, un riche marchand, annonce qu'il ne permettra pas à Bianca, sa fille cadette, de se marier tant que sa fille aînée, la capricieuse et intraitable Katherina, ne le fera pas."
+   "summary": "De retour d'Amérique où il a fait fortune, Petruccio épouse Catina, une jeune fille rebelle à toute forme de contrainte. Patiemment, il la rend docile et raisonnable..."
   },
   {
    "title": "Koi Koi",
@@ -13346,7 +13345,7 @@
     "Thriller",
     "Crime"
    ],
-   "rating": 7.0,
+   "rating": 7.1,
    "poster": "https://image.tmdb.org/t/p/w185/z4Vd5YgIztiLOkpcmAlj7yhhD6R.jpg",
    "country": "France",
    "summary": "Les explosifs Riggs et Murtaugh mettent à jour un énorme trafic de drogue dirigé par Arjen Rudd, de l'ambassade sudafricaine. Ce n'est certainement pas l'immunité diplomatique qui va les géner, mais peut-être plutôt ce bavard de Léo Getz, petit comptable magouilleur dont ils sont chargés de la protection."
@@ -13362,7 +13361,7 @@
     "Thriller",
     "Crime"
    ],
-   "rating": 7.0,
+   "rating": 7.1,
    "poster": "https://image.tmdb.org/t/p/w185/z4Vd5YgIztiLOkpcmAlj7yhhD6R.jpg",
    "country": "Suisse",
    "summary": "Les explosifs Riggs et Murtaugh mettent à jour un énorme trafic de drogue dirigé par Arjen Rudd, de l'ambassade sudafricaine. Ce n'est certainement pas l'immunité diplomatique qui va les géner, mais peut-être plutôt ce bavard de Léo Getz, petit comptable magouilleur dont ils sont chargés de la protection."
