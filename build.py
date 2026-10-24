@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Génère films.json : les films diffusés aujourd'hui à la TV (FR/francophone), avec genres et résumés."""
+from collections import Counter
 import gzip, io, json, os, re, unicodedata, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -63,6 +64,7 @@ def shorten(title, text):
 # 1) Guide(s) TV (lecture en flux pour limiter la mémoire : les fichiers sont gros)
 today = datetime.now(TZ).date()
 chans, films, seen = {}, [], set()
+days_seen = Counter()
 for url in [u for u in re.split(r"[,\s]+", XMLTV_URL) if u]:
     raw = get(url)
     if raw[:2] == b"\x1f\x8b":
@@ -72,6 +74,7 @@ for url in [u for u in re.split(r"[,\s]+", XMLTV_URL) if u]:
             chans[e.get("id")] = e.findtext("display-name")
         elif e.tag == "programme":
             start = parse_time(e.get("start"))
+            days_seen[start.date().isoformat()] += 1
             cats = [(c.text or "").lower() for c in e.findall("category")]
             is_film = any("film" in c or "cinéma" in c for c in cats)
             not_film = any("série" in c or "documentaire" in c for c in cats)
@@ -104,6 +107,7 @@ def country(cid, name):
     return {"ch": "Suisse", "be": "Belgique", "ca": "Canada", "lu": "Luxembourg", "mc": "Monaco"}.get(tld, "France")
 
 
+print("Jours présents dans le guide :", ", ".join(f"{d} ({n} programmes)" for d, n in sorted(days_seen.items())))
 by = {}
 for cid, name in chans.items():
     by.setdefault(country(cid, name), set()).add(name or cid)
@@ -150,6 +154,7 @@ films.sort(key=lambda f: f["start"])
 with open("films.json", "w", encoding="utf-8") as fh:
     json.dump({"date": today.isoformat(), "films": films}, fh, ensure_ascii=False, indent=1)
 print(len(films), "films")
+print("Films par jour :", dict(sorted(Counter(f["start"][:10] for f in films).items())))
 
 # 4) Notification push via ntfy.sh (optionnel)
 if NTFY:
