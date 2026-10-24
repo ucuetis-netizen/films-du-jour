@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 TZ = ZoneInfo("Europe/Paris")
 XMLTV_URL = os.getenv("XMLTV_URL") or "https://xmltvfr.fr/xmltv/xmltv.xml.gz"
 TMDB = os.getenv("TMDB_KEY")
+DAYS = int(os.getenv("DAYS") or 3)  # aujourd'hui + les jours suivants
 NTFY = os.getenv("NTFY_TOPIC")
 CLAUDE = os.getenv("ANTHROPIC_API_KEY")
 NOTIFY = [g.strip().lower() for g in (os.getenv("NOTIFY_GENRES") or "").split(",") if g.strip()]
@@ -75,7 +76,7 @@ for url in [u for u in re.split(r"[,\s]+", XMLTV_URL) if u]:
             is_film = any("film" in c or "cinéma" in c for c in cats)
             not_film = any("série" in c or "documentaire" in c for c in cats)
             key = (e.get("channel"), e.get("start"))
-            if start.date() == today and is_film and not not_film and key not in seen:
+            if 0 <= (start.date() - today).days < DAYS and is_film and not not_film and key not in seen:
                 seen.add(key)
                 year = (e.findtext("date") or "")[:4]
                 films.append({
@@ -152,7 +153,8 @@ print(len(films), "films")
 
 # 4) Notification push via ntfy.sh (optionnel)
 if NTFY:
-    hits = [f for f in films if not NOTIFY or any(g.lower() in NOTIFY for g in f["genres"])]
+    hits = [f for f in films if f["start"][:10] == today.isoformat()
+            and (not NOTIFY or any(g.lower() in NOTIFY for g in f["genres"]))]
     if hits:
         lines = [f'{f["start"][11:16]} {f["channel"]} : {f["title"]}' for f in hits[:10]]
         get(f"https://ntfy.sh/{NTFY}", {"Title": "Films du jour", "User-Agent": "films-du-jour"},

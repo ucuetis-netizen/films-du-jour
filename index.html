@@ -18,6 +18,7 @@ h1{font:700 2rem/1.1 Georgia,serif;margin:0}
 .chips button[aria-pressed=true]{background:var(--acc);color:var(--bg);border-color:var(--acc)}
 .sel{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
 select{flex:1 1 150px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+#days button{text-transform:capitalize}
 #now{border-color:var(--hi);color:var(--hi);font-weight:700}
 #now[aria-pressed=true]{background:var(--hi);border-color:var(--hi);color:#fff}
 button:focus-visible,select:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
@@ -37,6 +38,7 @@ p{margin:0;font-size:.95rem}
 <h1>Films du jour</h1>
 <div id="date"></div>
 <div class="chips"><button id="now" aria-pressed="false">Maintenant</button></div>
+<div class="chips" id="days" role="group" aria-label="Jour"></div>
 <div class="chips" id="genres" role="group" aria-label="Genre"></div>
 <div class="sel">
 <select id="pays" aria-label="Pays"><option value="">Tous les pays</option></select>
@@ -49,10 +51,18 @@ p{margin:0;font-size:.95rem}
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let films=[],genre='',nowMode=false;
+let films=[],genre='',nowMode=false,day='';
 $('#now').onclick=()=>{nowMode=!nowMode;$('#now').setAttribute('aria-pressed',nowMode);render()};
 fetch('films.json?'+Date.now()).then(r=>r.json()).then(d=>{
   films=d.films;
+  const t=new Date().toLocaleDateString('sv-SE'),ds=[...new Set(films.map(f=>f.start.slice(0,10)))].sort();
+  day=ds.includes(t)?t:(ds[0]||t);
+  $('#days').innerHTML=ds.map(x=>{const i=Math.round((new Date(x+'T12:00')-new Date(t+'T12:00'))/864e5);
+    const l=i===0?"Aujourd'hui":i===1?'Demain':new Date(x+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric'});
+    return `<button data-d="${x}" aria-pressed="${x===day}">${l}</button>`}).join('');
+  $('#days').onclick=e=>{const b=e.target.closest('button');if(!b)return;day=b.dataset.d;nowMode=false;
+    $('#now').setAttribute('aria-pressed',false);
+    document.querySelectorAll('#days button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===day));render()};
   $('#date').textContent=new Date(d.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
   const gs=[...new Set(films.flatMap(f=>f.genres))].sort((a,b)=>a.localeCompare(b,'fr'));
   $('#genres').innerHTML=gs.map(g=>`<button aria-pressed="false">${esc(g)}</button>`).join('');
@@ -67,7 +77,7 @@ fetch('films.json?'+Date.now()).then(r=>r.json()).then(d=>{
 }).catch(()=>$('#list').innerHTML='<div id="empty">Impossible de charger films.json.</div>');
 function render(){
   const N=new Date(),pa=$('#pays').value,ch=$('#chan').value,from=+$('#from').value,min=+$('#note').value;
-  const L=films.filter(f=>(!genre||f.genres.includes(genre))&&(!pa||f.country===pa)&&(!ch||f.channel===ch)
+  const L=films.filter(f=>(!genre||f.genres.includes(genre))&&(nowMode||f.start.slice(0,10)===day)&&(!pa||f.country===pa)&&(!ch||f.channel===ch)
     &&(nowMode?new Date(f.start)<=N&&N<new Date(f.stop):+f.start.slice(11,13)>=from)&&(!min||(f.rating||0)>=min));
   $('#list').innerHTML=L.length?L.map(f=>`<article>${f.poster?`<img src="${esc(f.poster)}" alt="" loading="lazy">`:''}
     <div><h2>${esc(f.title)} ${f.year?`<small>(${esc(f.year)})</small>`:''}</h2>
