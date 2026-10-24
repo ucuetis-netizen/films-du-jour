@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1d2a44">
+<title>Films du jour</title>
+<style>
+:root{--bg:#eef1f6;--card:#fff;--ink:#1b2433;--mute:#5d6a80;--line:#d5dbe6;--acc:#1d2a44;--hi:#c2410c}
+@media (prefers-color-scheme:dark){:root{--bg:#141a28;--card:#1d2536;--ink:#e8ecf4;--mute:#97a3b8;--line:#2e3950;--acc:#9db4e8;--hi:#fb923c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+h1{font:700 2rem/1.1 Georgia,serif;margin:0}
+#date{color:var(--mute);margin:4px 0 16px;text-transform:capitalize}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chips button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 12px;border-radius:999px;font:inherit;cursor:pointer}
+.chips button[aria-pressed=true]{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+.sel{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+select{flex:1 1 150px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+#now{border-color:var(--hi);color:var(--hi);font-weight:700}
+#now[aria-pressed=true]{background:var(--hi);border-color:var(--hi);color:#fff}
+button:focus-visible,select:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+article{display:flex;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+article img{width:72px;height:108px;object-fit:cover;border-radius:6px;flex:none;background:var(--line)}
+h2{font:700 1.15rem/1.25 Georgia,serif;margin:0}
+h2 small{font:400 .9rem system-ui;color:var(--mute)}
+.meta{color:var(--mute);font-size:.9rem;margin:2px 0 6px}
+.time{color:var(--hi);font-weight:700}
+.note{font-weight:700}
+p{margin:0;font-size:.95rem}
+#empty{color:var(--mute);padding:24px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>Films du jour</h1>
+<div id="date"></div>
+<div class="chips"><button id="now" aria-pressed="false">Maintenant</button></div>
+<div class="chips" id="genres" role="group" aria-label="Genre"></div>
+<div class="sel">
+<select id="pays" aria-label="Pays"><option value="">Tous les pays</option></select>
+<select id="chan" aria-label="Chaîne"><option value="">Toutes les chaînes</option></select>
+<select id="from" aria-label="Heure"><option value="0">Toute la journée</option></select>
+<select id="note" aria-label="Note"><option value="0">Toutes les notes</option><option value="6">Note 6+</option><option value="7">Note 7+</option></select>
+</div>
+<div id="list"><div id="empty">Chargement…</div></div>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let films=[],genre='',nowMode=false;
+$('#now').onclick=()=>{nowMode=!nowMode;$('#now').setAttribute('aria-pressed',nowMode);render()};
+fetch('films.json?'+Date.now()).then(r=>r.json()).then(d=>{
+  films=d.films;
+  $('#date').textContent=new Date(d.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const gs=[...new Set(films.flatMap(f=>f.genres))].sort((a,b)=>a.localeCompare(b,'fr'));
+  $('#genres').innerHTML=gs.map(g=>`<button aria-pressed="false">${esc(g)}</button>`).join('');
+  $('#genres').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+    genre=genre===b.textContent?'':b.textContent;
+    document.querySelectorAll('#genres button').forEach(x=>x.setAttribute('aria-pressed',x.textContent===genre));render()};
+  [...new Set(films.map(f=>f.country))].sort().forEach(c=>$('#pays').add(new Option(c,c)));
+  [...new Set(films.map(f=>f.channel))].sort().forEach(c=>$('#chan').add(new Option(c,c)));
+  for(let h=1;h<24;h++)$('#from').add(new Option(`À partir de ${h} h`,h));
+  ['pays','chan','from','note'].forEach(i=>$('#'+i).onchange=render);
+  render();
+}).catch(()=>$('#list').innerHTML='<div id="empty">Impossible de charger films.json.</div>');
+function render(){
+  const N=new Date(),pa=$('#pays').value,ch=$('#chan').value,from=+$('#from').value,min=+$('#note').value;
+  const L=films.filter(f=>(!genre||f.genres.includes(genre))&&(!pa||f.country===pa)&&(!ch||f.channel===ch)
+    &&(nowMode?new Date(f.start)<=N&&N<new Date(f.stop):+f.start.slice(11,13)>=from)&&(!min||(f.rating||0)>=min));
+  $('#list').innerHTML=L.length?L.map(f=>`<article>${f.poster?`<img src="${esc(f.poster)}" alt="" loading="lazy">`:''}
+    <div><h2>${esc(f.title)} ${f.year?`<small>(${esc(f.year)})</small>`:''}</h2>
+    <div class="meta"><span class="time">${f.start.slice(11,16)}${nowMode?' à '+f.stop.slice(11,16):''}</span> sur ${esc(f.channel)} (${esc(f.country)})${f.genres.length?', '+esc(f.genres.join(', ')):''}${f.rating?` <span class="note">★ ${f.rating}</span>`:''}</div>
+    <p>${esc(f.summary)}</p></div></article>`).join(''):'<div id="empty">'+(nowMode?'Aucun film en cours avec ces filtres.':'Aucun film ne correspond à ces filtres.')+'</div>';
+}
+setInterval(()=>{if(nowMode)render()},60000);
+</script>
+</body>
+</html>
