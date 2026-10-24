@@ -112,7 +112,7 @@ by = {}
 for cid, name in chans.items():
     by.setdefault(country(cid, name), set()).add(name or cid)
 for pays, names in sorted(by.items()):
-    print(f"{pays} : {len(names)} chaînes" + ("" if pays == "France" else " -> " + ", ".join(sorted(names))))
+    print(f"{pays} : {len(names)} chaînes -> " + ", ".join(sorted(names)))
 
 # 2) Genres, note et synopsis via TMDB
 genre_names = {g["id"]: g["name"] for g in tmdb("genre/movie/list")["genres"]} if TMDB else {}
