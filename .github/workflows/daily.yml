@@ -1,0 +1,28 @@
+name: Films du jour
+on:
+  schedule:
+    - cron: "30 3 * * *"   # chaque nuit, vers 4h30-5h30 heure de Paris
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python build.py
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NOTIFY_GENRES: ${{ vars.NOTIFY_GENRES }}
+          XMLTV_URL: ${{ vars.XMLTV_URL }}
+      - run: |
+          git config user.name "films-bot"
+          git config user.email "films-bot@users.noreply.github.com"
+          git add films.json
+          git commit -m "Films du jour" || exit 0
+          git push
