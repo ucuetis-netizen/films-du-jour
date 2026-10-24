@@ -64,7 +64,9 @@ def shorten(title, text):
 # 1) Guide(s) TV (lecture en flux pour limiter la mémoire : les fichiers sont gros)
 today = datetime.now(TZ).date()
 chans, films, seen = {}, [], set()
-days_seen = Counter()
+days_seen, cat_seen = Counter(), Counter()
+# Chaînes de cinéma : si le guide ne dit pas « film », on retient les longs programmes sans numéro d'épisode
+MOVIE_CH = re.compile(r"super [ée]cran|cin[ée]|tcm|paramount|syfy|13[eè]me rue|\baction\b|dreamworks|\bocs\b|movie|\bfilm|sony|\bmgm\b|starz")
 for url in [u for u in re.split(r"[,\s]+", XMLTV_URL) if u]:
     raw = get(url)
     if raw[:2] == b"\x1f\x8b":
@@ -76,15 +78,21 @@ for url in [u for u in re.split(r"[,\s]+", XMLTV_URL) if u]:
             start = parse_time(e.get("start"))
             days_seen[start.date().isoformat()] += 1
             cats = [(c.text or "").lower() for c in e.findall("category")]
-            is_film = any("film" in c or "cinéma" in c for c in cats)
-            not_film = any("série" in c or "documentaire" in c for c in cats)
+            cat_seen.update(cats)
+            stop = parse_time(e.get("stop")) if e.get("stop") else start
+            minutes = (stop - start).total_seconds() / 60
+            name = (chans.get(e.get("channel")) or "").lower()
+            is_film = any(re.search(r"film|cin[ée]ma|movie|long m[ée]trage", c) for c in cats)
+            not_film = any(re.search(r"s[ée]rie|series|documentaire|documentary|news|magazine|actualit", c) for c in cats)
+            if not is_film and not not_film and minutes >= 70 and MOVIE_CH.search(name) and e.find("episode-num") is None:
+                is_film = True
             key = (e.get("channel"), e.get("start"))
             if 0 <= (start.date() - today).days < DAYS and is_film and not not_film and key not in seen:
                 seen.add(key)
                 year = (e.findtext("date") or "")[:4]
                 films.append({
                     "title": e.findtext("title") or "?", "channel": e.get("channel"),
-                    "start": start.isoformat(), "stop": parse_time(e.get("stop")).isoformat(),
+                    "start": start.isoformat(), "stop": stop.isoformat(),
                     "year": year, "desc": e.findtext("desc") or "",
                     "genres": [c.capitalize() for c in cats if c not in ("film", "téléfilm")],
                     "rating": None, "poster": None,
@@ -113,6 +121,10 @@ for cid, name in chans.items():
     by.setdefault(country(cid, name), set()).add(name or cid)
 for pays, names in sorted(by.items()):
     print(f"{pays} : {len(names)} chaînes -> " + ", ".join(sorted(names)))
+
+with_films = {f["channel"] for f in films}
+print("Chaînes du guide sans aucun film retenu :", ", ".join(sorted(str(chans.get(c) or c) for c in chans if c not in with_films)))
+print("Catégories les plus fréquentes du guide :", ", ".join(f"{c} ({n})" for c, n in cat_seen.most_common(60)))
 
 # 2) Genres, note et synopsis via TMDB
 genre_names = {g["id"]: g["name"] for g in tmdb("genre/movie/list")["genres"]} if TMDB else {}
