@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1d2a44">
 <title>Films du jour</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Films TV">
 <style>
 :root{--bg:#eef1f6;--card:#fff;--ink:#1b2433;--mute:#5d6a80;--line:#d5dbe6;--acc:#1d2a44;--hi:#c2410c}
 @media (prefers-color-scheme:dark){:root{--bg:#141a28;--card:#1d2536;--ink:#e8ecf4;--mute:#97a3b8;--line:#2e3950;--acc:#9db4e8;--hi:#fb923c}}
@@ -85,6 +91,7 @@ function render(){
     <p>${esc(f.summary)}</p></div></article>`).join(''):'<div id="empty">'+(nowMode?'Aucun film en cours avec ces filtres.':'Aucun film ne correspond à ces filtres.')+'</div>';
 }
 setInterval(()=>{if(nowMode)render()},60000);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>
